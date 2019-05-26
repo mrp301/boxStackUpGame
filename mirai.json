@@ -1,0 +1,25 @@
+{
+  "frame": {
+    "width": 300,
+    "height": 300,
+    "rows": 1,
+    "cols": 3
+  },
+  "animations": {
+    "stand": {
+      "frames": [0],
+      "next": "stand",
+      "frequency": 4
+    },
+    "left": {
+      "frames": [1, 0, 2, 0],
+      "next": "left",
+      "frequency": 4
+    },
+    "right": {
+      "frames": [2, 0, 1, 0],
+      "next": "right",
+      "frequency": 4
+    }
+  }
+}

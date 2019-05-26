@@ -4,12 +4,37 @@ phina.globalize();
 var ASSETS = {
   // 画像
   image: {
-    'tomapiko': 'https://rawgit.com/phi-jp/phina.js/develop/assets/images/tomapiko_ss.png',
+    'tomapiko': './mirai.png',
     'box': 'box.png',
+    'title': 'title.jpg',
   },
   // フレームアニメーション情報
   spritesheet: {
-    'tomapiko_ss': 'https://rawgit.com/phi-jp/phina.js/develop/assets/tmss/tomapiko.tmss',
+    'tomapiko_ss': {
+      "frame": {
+        "width": 300,
+        "height": 300,
+        "rows": 2,
+        "cols": 3
+      },
+      "animations": {
+        "stand": {
+          "frames": [0],
+          "next": "stand",
+          "frequency": 4
+        },
+        "left": {
+          "frames": [1, 0, 2, 0],
+          "next": "left",
+          "frequency": 4
+        },
+        "right": {
+          "frames": [3, 5, 4, 5],
+          "next": "right",
+          "frequency": 4
+        }
+      }
+    }
   },
 };
 // 定数
@@ -19,12 +44,16 @@ var SPEED = 6
 var PIECE_SIZE = 80;
 var PIECE_SIZE_HALF = PIECE_SIZE/2;
 var isKeyPush = false
-var HIT_RADIUS1     = 16;  // 当たり判定用の半径
+var HIT_RADIUS1     = 18;  // 当たり判定用の半径
 var HIT_RADIUS2     = 16;  // 当たり判定用の半径
+var daishaX= -62//当たり判定位置調整X
+var daishaY = -125//当たり判定位置調整Y
 var playerPosition = 0
+var playerScale = false//false反転なし
 var boxCount = 0
 var SCREEN_WIDTH = 493;  // スクリーン幅
 var SCREEN_HEIGHT = 740;  // スクリーン高さ
+var MISS_COUNT = 0
 /*
  * メインシーン
  */
@@ -33,9 +62,11 @@ phina.define("MainScene", {
   superClass: 'DisplayScene',
   // コンストラクタ
   init: function(option) {
+
     this.superInit(option);
     //スコアリセット
     boxCount = 0
+    MISS_COUNT = 0
     // 親クラス初期化
     // 背景
     this.backgroundColor = 'skyblue';
@@ -62,14 +93,6 @@ phina.define("MainScene", {
     // 敵グループ
     this.boxGroup = DisplayElement().addChildTo(this);
 
-
-    // 画面タッチ時処理
-    this.onpointend = function(Label) {
-      Label({
-        text: 'aaa'
-      }).addChildTo(this).setPosition(this.gridX.center(), this.gridY.span(3));
-    };
-
     // 参照用
     this.player = player;
   },
@@ -85,13 +108,14 @@ phina.define("MainScene", {
       this.exit({
       score: "クリア！"
       })
-    } else if(boxCount === -1) {
+    } else if(MISS_COUNT === -3) {
       this.exit({
       score: "失敗..."
       })
     }
 
     if (key.getKey('left')) {
+      playerScale = false
       if(player.scaleX === -1) {
         player.scaleX *= -1
       }
@@ -102,6 +126,8 @@ phina.define("MainScene", {
       player.x -= SPEED
     }
     if (key.getKey('right')) {
+      playerScale = true
+      //player.scaleX *= -1
       if(player.scaleX === -1) {
         player.scaleX *= -1
       }
@@ -162,14 +188,21 @@ phina.define("MainScene", {
      var self = this;
      // 敵をループ
       this.boxGroup.children.each(function(box) {
+        if(!playerScale) {
+          var c1x = (playerPosition + daishaX)
+        } else {
+          var c1x = (player.x - daishaX)
+        }
+
+        var c1y = ((player.y - daishaY) - (boxCount*60))
+
        // 判定用の円
-       var c1 = Circle(player.x, ((player.y-20) + (boxCount*-60)), HIT_RADIUS1);
+       var c1 = Circle(c1x, c1y, HIT_RADIUS1);
        var c2 = Circle(box.x, box.y, HIT_RADIUS2);
        // 円判定
        if (Collision.testCircleCircle(c1, c2) && !box.hit) {
           box.hit = true
           boxCount ++
-          console.log('hit!');
        }
      });
    },
@@ -189,10 +222,15 @@ phina.define("box", {
     if(!this.hit) {
       this.y += 8;
     } else {
-      this.x = playerPosition
+        if(!playerScale) {
+          this.x = playerPosition + daishaX
+        } else {
+          this.x = playerPosition - daishaX
+        }
     }
     if (this.y === 860) {
-      boxCount = -1
+      this.remove()
+      MISS_COUNT --
     }
   }
 });
@@ -215,19 +253,45 @@ phina.define('Player', {
     this.anim = FrameAnimation('tomapiko_ss').attachTo(this);
     // 初期アニメーション指定
     this.anim.gotoAndPlay('stand');
-    // 初速度を与える
-    //this.physical.force(-10, 0);
-    // 床の上かどうか
-    this.isOnFloor = true;
   },
   // 毎フレーム処理
   update: function() {
-    // 画面端で速度と向き反転
-    if (this.left < 0) {
-        this.left = 0
-    } else if (this.right > 640) {
-      this.right = 640
+    if (this.left < -140) {
+        this.left = -140
+    } else if (this.right > 780) {
+      this.right = 780
     }
+  },
+});
+
+// タイトルシーン
+phina.define('TitleScene', {
+  superClass: 'DisplayScene',
+  // コンストラクタ
+  init: function() {
+    this.superInit();
+
+    // タイトル
+    Label({
+      text: 'ダンボールを\n10個積み上げろ！',
+      fontSize: 30,
+    }).addChildTo(this).setPosition(this.gridX.center(), this.gridY.span(4));
+
+    Label({
+      text: "TOUCH START",
+      fontSize: 32,
+    }).addChildTo(this)
+      .setPosition(this.gridX.center(), this.gridY.span(12))
+      .tweener.fadeOut(1000).fadeIn(500).setLoop(true).play();
+
+    var title = Sprite('title').addChildTo(this);
+    title.x = this.gridX.center();
+    title.y = this.gridY.center();
+    // 画面タッチ時
+    this.on('pointend', function() {
+      // 次のシーンへ
+      this.exit();
+    });
   },
 });
 /*
@@ -236,7 +300,6 @@ phina.define('Player', {
 phina.main(function() {
   // アプリケーションを生成
   var app = GameApp({
-    title: 'ダンボールを\n10個積み上げろ！',
     // MainScene から開始
     startLabel: 'title',
     // アセット読み込み
