@@ -23,6 +23,8 @@ var HIT_RADIUS1     = 16;  // 当たり判定用の半径
 var HIT_RADIUS2     = 16;  // 当たり判定用の半径
 var playerPosition = 0
 var boxCount = 0
+var SCREEN_WIDTH = 493;  // スクリーン幅
+var SCREEN_HEIGHT = 740;  // スクリーン高さ
 /*
  * メインシーン
  */
@@ -30,9 +32,11 @@ phina.define("MainScene", {
   // 継承
   superClass: 'DisplayScene',
   // コンストラクタ
-  init: function() {
+  init: function(option) {
+    this.superInit(option);
+    //スコアリセット
+    boxCount = 0
     // 親クラス初期化
-    this.superInit();
     // 背景
     this.backgroundColor = 'skyblue';
 
@@ -82,7 +86,6 @@ phina.define("MainScene", {
       score: "クリア！"
       })
     } else if(boxCount === -1) {
-      boxCount = 0
       this.exit({
       score: "失敗..."
       })
@@ -139,21 +142,6 @@ phina.define("MainScene", {
 
     if (app.frame % 50 === 0) {
       this.createBox();
-    }
-
-
-
-    // 床とヒットしたら
-    if (player.hitTestElement(this.floor)) {
-      // y方向の速度と重力を無効にする
-      player.physical.velocity.y = 0;
-      player.physical.gravity.y = 0;
-      // 位置調整
-      player.bottom = this.floor.top;
-      // フラグ立て
-      player.isOnFloor = true;
-      // アニメーション変更
-      player.anim.gotoAndPlay('left');
     }
 
     // 敵とプレイヤーの辺り判定
